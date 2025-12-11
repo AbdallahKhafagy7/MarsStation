@@ -83,4 +83,7 @@ public:
 
 	// Move rovers whose checkup ended to available lists
 	void moveCheckupToAvailable();
+
+	// Abort a normal mission by ID (called from abortRequest)
+	void AbortMission(int missionID);
 };

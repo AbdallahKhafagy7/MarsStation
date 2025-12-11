@@ -8,6 +8,7 @@
 #include <sstream>
 #include <cstdlib> // For rand()
 #include <ctime>   // For time()
+#include <vector>
 using namespace std;
 
 void MarsStation::inputFile(const string filename) {
@@ -314,4 +315,45 @@ void MarsStation::moveCheckupToAvailable()
 		tempQ.dequeue(r);
 		checkup_DR.enqueue(r);
 	}
+}
+
+void MarsStation::AbortMission(int missionID)
+{
+    // Try to abort from ready normal list
+    mission* m = RDY_NM.AbortMission(missionID);
+    if (m != nullptr) {
+        // found in ready list -> move to aborted
+        Aborted_missions.enqueue(m);
+        return;
+    }
+
+    // Try to abort from outgoing missions
+    m = OUT_missions.AbortMission(missionID);
+    if (m != nullptr) {
+        // detach rover and send it to checkup/available immediately
+        rover* r = m->getRover();
+        if (r != nullptr) {
+            int x = rand() % 100;
+            char type = r->getType();
+            // Simplified: send to checkup with probability 20%, else available
+            if (x < 20) {
+                r->setCheckupStartDay(day);
+                if (type == 'N') checkup_NR.enqueue(r);
+                else if (type == 'P') checkup_PR.enqueue(r);
+                else if (type == 'D') checkup_DR.enqueue(r);
+            }
+            else {
+                r->setCheckupStartDay(0);
+                if (type == 'N') Avail_NR.enqueue(r);
+                else if (type == 'P') Avail_PR.enqueue(r);
+                else if (type == 'D') Avail_DR.enqueue(r);
+            }
+        }
+
+        // move mission to aborted list
+        Aborted_missions.enqueue(m);
+        return;
+    }
+
+    // Otherwise cannot abort; ignore
 }

@@ -11,7 +11,8 @@ public:
 	}
 
 	void Operate() override {
-		//phase 2
-		return;
+		if (station) {
+			station->AbortMission(missionID);
+		}
 	}
 };
