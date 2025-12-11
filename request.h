@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 class MarsStation;
 
 class request
@@ -15,4 +16,6 @@ public:
 	virtual ~request() {};
 
 	int getDay() const { return day; }
+	char getType() const { return type; }
+	int getMissionID() const { return missionID; }
 };
