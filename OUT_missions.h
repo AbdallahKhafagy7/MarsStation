@@ -8,25 +8,24 @@ public:
     // Remove mission with given ID from outgoing missions and return it.
     // This operation requires scanning the priority list; we'll rebuild the list excluding the mission.
     mission* AbortMission(int id) {
-        // Extract all items
-        struct Item { mission* m; int p; };
-        std::vector<Item> items;
         mission* mm;
         int pr;
-        while (this->dequeue(mm, pr)) {
-            items.push_back({mm, pr});
-        }
-
         mission* found = nullptr;
-        for (auto &it : items) {
-            if (it.m->getID() == id && found == nullptr) {
-                found = it.m; // remove
+
+        // Use a temporary PriQueue to hold non-matching items
+        PriQueue<mission*> temp;
+
+        while (this->dequeue(mm, pr)) {
+            if (mm->getID() == id && found == nullptr) {
+                found = mm; // skip this one
+            } else {
+                temp.enqueue(mm, pr);
             }
         }
 
-        // Re-enqueue remaining
-        for (auto &it : items) {
-            if (it.m != found) this->enqueue(it.m, it.p);
+        // Move items back to this priority queue preserving priority order
+        while (temp.dequeue(mm, pr)) {
+            this->enqueue(mm, pr);
         }
 
         return found;

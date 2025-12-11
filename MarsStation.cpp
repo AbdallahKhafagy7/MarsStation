@@ -58,7 +58,7 @@ void MarsStation::inputFile(const string filename) {
 		}
 		else if (type == 'X') {
 			int id, day;
-			file >> id >> day;
+			file >> day >> id;
 			abortRequest* p = new abortRequest(this, type, id, day);
 			Requests.enqueue(p);
 		}
@@ -217,42 +217,6 @@ void MarsStation::moveingReadyToOut()
 	}
 }
 
-// Auto-abort ready polar missions whose waiting time > 2 * duration
-void MarsStation::autoAbortPolarReady()
-{
-	// We need to iterate through RDY_PM queue and remove missions that meet condition.
-	// Since LinkedQueue doesn't provide direct iteration or removal by predicate,
-	// we'll dequeue all items and re-enqueue those that don't get aborted.
-
-	LinkedQueue<mission*> tempQueue;
-	mission* m;
-
-	while (!RDY_PM.isEmpty()) {
-		RDY_PM.dequeue(m);
-		int waiting;
-		if (m->getRDay() == 0) {
-			waiting = 0;
-		} else {
-			waiting = day - m->getRDay();
-		}
-		// If waitingDays field exists and is maintained, prefer using it. Otherwise calculate.
-		// Condition: waiting time > 2 * mission duration
-		if (waiting > 2 * m->getDuration()) {
-			// move to aborted list
-			Aborted_missions.enqueue(m);
-		}
-		else {
-			tempQueue.enqueue(m);
-		}
-	}
-
-	// restore remaining missions
-	while (!tempQueue.isEmpty()) {
-		tempQueue.dequeue(m);
-		RDY_PM.enqueue(m);
-	}
-}
-
 // Move rovers whose checkup ended to available lists
 void MarsStation::moveCheckupToAvailable()
 {
@@ -317,6 +281,7 @@ void MarsStation::moveCheckupToAvailable()
 	}
 }
 
+// Abort a normal mission by ID (called from abortRequest)
 void MarsStation::AbortMission(int missionID)
 {
     // Try to abort from ready normal list
@@ -356,4 +321,41 @@ void MarsStation::AbortMission(int missionID)
     }
 
     // Otherwise cannot abort; ignore
+}
+
+// Auto-abort ready polar missions whose waiting time > 2 * duration
+void MarsStation::autoAbortPolarReady()
+{
+	// We need to iterate through RDY_PM queue and remove missions that meet condition.
+	// Since LinkedQueue doesn't provide direct iteration or removal by predicate,
+	// we'll dequeue all items and re-enqueue those that don't get aborted.
+
+	LinkedQueue<mission*> tempQueue;
+	mission* m;
+
+	while (!RDY_PM.isEmpty()) {
+		RDY_PM.dequeue(m);
+		int waiting;
+		if (m->getRDay() == 0) {
+			waiting = 0;
+		}
+		else {
+			waiting = day - m->getRDay();
+		}
+		// If waitingDays field exists and is maintained, prefer using it. Otherwise calculate.
+		// Condition: waiting time > 2 * mission duration
+		if (waiting > 2 * m->getDuration()) {
+			// move to aborted list
+			Aborted_missions.enqueue(m);
+		}
+		else {
+			tempQueue.enqueue(m);
+		}
+	}
+
+	// restore remaining missions
+	while (!tempQueue.isEmpty()) {
+		tempQueue.dequeue(m);
+		RDY_PM.enqueue(m);
+	}
 }
