@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Data Structures">
+      <UniqueIdentifier>{a838287b-e26c-4012-812c-d6b2315ed783}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data Structures\Stack">
+      <UniqueIdentifier>{594eae96-7b95-4980-84ad-e4debcd1b9c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data Structures\Queue">
+      <UniqueIdentifier>{429611c8-73b5-43eb-827a-8f7bb0317808}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data Structures\RDY_NM">
+      <UniqueIdentifier>{50e69fe8-335a-446c-8588-4943e50d7eab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data Structures\OUT_missions">
+      <UniqueIdentifier>{e8918f96-82fb-4812-9200-b6e47e477bb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{a77eec84-43a4-446b-b012-36abf2b3e5b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data Structures\PriQueue">
+      <UniqueIdentifier>{5ba115e8-90ed-44a7-b812-83726e916e32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rover">
+      <UniqueIdentifier>{362c9139-3594-4254-97dd-16d20765395e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="request">
+      <UniqueIdentifier>{b6907420-9579-46b7-83b9-9bfee28d627d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mission">
+      <UniqueIdentifier>{760d73e4-e9e9-4945-b69b-7167356d2e22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MarsStation">
+      <UniqueIdentifier>{ad6e14d9-14c9-4d12-9a5a-eb7ba7872bb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data Structures\Tests">
+      <UniqueIdentifier>{346962b3-37d1-4dea-a214-0d2ced70f009}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MarsStation.cpp">
+      <Filter>MarsStation</Filter>
+    </ClCompile>
+    <ClCompile Include="newRequest.cpp">
+      <Filter>request</Filter>
+    </ClCompile>
+    <ClCompile Include="mission.cpp">
+      <Filter>mission</Filter>
+    </ClCompile>
+    <ClCompile Include="rover.cpp">
+      <Filter>rover</Filter>
+    </ClCompile>
+    <ClCompile Include="UI.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ArrayStack.h">
+      <Filter>Data Structures\Stack</Filter>
+    </ClInclude>
+    <ClInclude Include="Node.h">
+      <Filter>Data Structures\Queue</Filter>
+    </ClInclude>
+    <ClInclude Include="LinkedQueue.h">
+      <Filter>Data Structures\Queue</Filter>
+    </ClInclude>
+    <ClInclude Include="PriQueue.h">
+      <Filter>Data Structures\PriQueue</Filter>
+    </ClInclude>
+    <ClInclude Include="PriNode.h">
+      <Filter>Data Structures\PriQueue</Filter>
+    </ClInclude>
+    <ClInclude Include="OUT_missions.h">
+      <Filter>Data Structures\OUT_missions</Filter>
+    </ClInclude>
+    <ClInclude Include="RDY_NM.h">
+      <Filter>Data Structures\RDY_NM</Filter>
+    </ClInclude>
+    <ClInclude Include="rover.h">
+      <Filter>rover</Filter>
+    </ClInclude>
+    <ClInclude Include="request.h">
+      <Filter>request</Filter>
+    </ClInclude>
+    <ClInclude Include="mission.h">
+      <Filter>mission</Filter>
+    </ClInclude>
+    <ClInclude Include="UI.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="MarsStation.h">
+      <Filter>MarsStation</Filter>
+    </ClInclude>
+    <ClInclude Include="newRequest.h">
+      <Filter>request</Filter>
+    </ClInclude>
+    <ClInclude Include="abortRequest.h">
+      <Filter>request</Filter>
+    </ClInclude>
+    <ClInclude Include="Test.h">
+      <Filter>Data Structures\Tests</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="input.txt" />
+  </ItemGroup>
+</Project>
