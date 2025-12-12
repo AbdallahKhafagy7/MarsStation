@@ -142,53 +142,6 @@ void MarsStation::checkUpTest()
 	}
 }
 
-
-		// Get Rover Link
-		rover* r = m->getRover();
-		if (r != nullptr)
-		{
-			int x = rand() % 100;
-			char type = r->getType();
-
-			// Rule: X < 20 -> Checkup
-			if (x < 20) {
-				// set checkup start day and send to checkup queue
-				r->setCheckupStartDay(day);
-				if (type == 'N') checkup_NR.enqueue(r);
-				else if (type == 'P') checkup_PR.enqueue(r);
-				else if (type == 'D') checkup_DR.enqueue(r);
-			}
-			else {
-				// return to available and clear checkup start
-				r->setCheckupStartDay(0);
-				if (type == 'N') Avail_NR.enqueue(r);
-				else if (type == 'P') Avail_PR.enqueue(r);
-				else if (type == 'D') Avail_DR.enqueue(r);
-			}
-		}
-	}
-}
-
-
-void MarsStation::moveingOutToExec()
-{
-	mission* m;
-	int priority;
-	while (OUT_missions.peek(m, priority)) 
-	{
-				int arrivalDay = -priority;
-				if (arrivalDay <= day) 
-				{
-						OUT_missions.dequeue(m, priority);
-			int executionEndDay = day + m->getDuration();
-			EXEC_missions.enqueue(m, -executionEndDay);
-		        }
-		else {			break;
-		}
-	}
-}
-
-
 // Move rovers whose checkup ended to available lists
 void MarsStation::moveCheckupToAvailable()
 {
@@ -348,7 +301,7 @@ void MarsStation::moveingReadyToOut()
 		else if (!Avail_NR.isEmpty())
 		{
 			Avail_NR.dequeue(r1); // MAFESH POLAR AROH L normaL
-	}
+		}
 		else if (!Avail_DR.isEmpty()) 
 		{
 			Avail_DR.dequeue(r1); //  digging
@@ -431,22 +384,6 @@ void MarsStation::moveingReadyToOut()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void MarsStation::moveingOutToExec()
 {
 	mission* m; 
@@ -462,7 +399,8 @@ void MarsStation::moveingOutToExec()
 		}
 		else 
 		{
-			break;}//already mtrtben.
+			break;
+		}
 	}
 }
 
@@ -487,11 +425,11 @@ void MarsStation::moveingExecToBack()
 			BACK_missions.enqueue(m, -backArrivalDay);
 		}
 		else {
-			break; // kda kda mtrtben . lw awl wahed mawslsh elba2y mesh haywsel
+			break;
 		}
 	}
 }
-}
+
 void MarsStation::moveingBackToDone()
 {
 	mission* m;
@@ -512,6 +450,7 @@ void MarsStation::moveingBackToDone()
 			// (mission completed)
 			m->setRover(nullptr);
 		}
+
 		else {
 			break;
 		}
@@ -529,7 +468,8 @@ void MarsStation::roverToAvailCheckup(rover* r)
 	char type = r->getType();
 
 	// If rover reached missionsBeforeCheckup threshold, send to checkup
-	if (r->getMissionsCompleted() >= r->getMissionsBeforeCheckup()) {
+	if (r->getMissionsCompleted() >= r->getMissionsBeforeCheckup())
+	{
 		r->setCheckupStartDay(day);
 		r->resetMissions();
 
