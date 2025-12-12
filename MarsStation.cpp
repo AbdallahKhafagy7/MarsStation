@@ -371,9 +371,9 @@ void MarsStation::moveingReadyToOut()
 			
 			int speed = r1->getSpeed() ;
 			int dailyDistance = speed * 25;
-			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
-			int arrivalDay = day + travelDays ;
-			OUT_missions.enqueue(m1, -arrivalDay);
+			int trvelDays = (distance + dailyDistance - 1) / dailyDistance;
+			int arrivaDay = day + trvelDays ;
+			OUT_missions.enqueue(m1, -arrivaDay);
 		}
 		else 
 		{break;}
@@ -395,6 +395,7 @@ void MarsStation::moveingReadyToOut()
 			int distance = m1->getTargetLoc();
 			int speed = r1->getSpeed();
 			int dailyDistance = speed * 25;
+
 			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
 
 			int arrivalDay = day + travelDays;
