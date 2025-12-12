@@ -341,69 +341,64 @@ void MarsStation::autoAbortPolarReady()
 }
 void MarsStation::moveingReadyToOut()
 {
-	mission* m;
-	rover* r;
+	mission* m1;
+	rover* r1;
 
 	// the polar missions
 	// Polar , Normal ,  Digging 
-	while (RDY_PM.peek(m)) //while exist ready polar mission
+	while (RDY_PM.peek(m1)) //while exist ready polar mission
 	{
-		r = nullptr; 
+		r1 = NULL; 
 
-		if (!Avail_PR.isEmpty()) 
-		{
-			Avail_PR.dequeue(r); //   polar elAwl
+		if ( !Avail_PR.isEmpty()  )  {
+			Avail_PR.dequeue( r1) ; //   polar elAwl
 		}
 		else if (!Avail_NR.isEmpty())
 		{
-			Avail_NR.dequeue(r); // normar
-		}
+			Avail_NR.dequeue(r1); // MAFESH POLAR AROH L normaL
+	}
 		else if (!Avail_DR.isEmpty()) 
 		{
-			Avail_DR.dequeue(r); //  digging
+			Avail_DR.dequeue(r1); //  digging
 		}
 
-		// if rover exist
-		if (r != nullptr)
+		// LW LAQA ROVER FADY 
+		if (r1 != NULL)
 		{
-			RDY_PM.dequeue(m); 
-			m->setRover(r); 
-
-			int distance = m-> getTargetLoc() ;
-			int speed = r->getSpeed() ;
+			RDY_PM.dequeue( m1); 
+			m1->setRover(r1 ); 
+			int distance = m1-> getTargetLoc() ;
+			
+			int speed = r1->getSpeed() ;
 			int dailyDistance = speed * 25;
 			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
 			int arrivalDay = day + travelDays ;
-
-		//?
-			OUT_missions.enqueue(m, -arrivalDay);
+			OUT_missions.enqueue(m1, -arrivalDay);
 		}
 		else 
 		{break;}
 	}
-
-	// ---------------------------------------------------------
 	// digging
 //digging only
-	while (  RDY_DM.peek(m) )
+	while (  RDY_DM.peek(m1) )
 	{
-		r = nullptr;
+		r1 = nullptr;
 		if (!Avail_DR.isEmpty()) 
 		{
-			Avail_DR.dequeue(r);
+			Avail_DR.dequeue(r1);
 		}
 
-		if (r != nullptr)
+		if (r1 != nullptr)
 		{
-			RDY_DM.dequeue(m);
-			m->setRover(r);
-			int distance = m->getTargetLoc();
-			int speed = r->getSpeed();
+			RDY_DM.dequeue(m1);
+			m1->setRover(r1);
+			int distance = m1->getTargetLoc();
+			int speed = r1->getSpeed();
 			int dailyDistance = speed * 25;
 			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
 
 			int arrivalDay = day + travelDays;
-			OUT_missions.enqueue(m, -arrivalDay);
+			OUT_missions.enqueue(m1, -arrivalDay);
 		}
 		else {
 			break;
@@ -412,28 +407,28 @@ void MarsStation::moveingReadyToOut()
 	//normal
 	// normal , polar 
 	// ---------------------------------------------------------
-	while (RDY_NM.peek(m))
+	while (RDY_NM.peek(m1))
 	{
-		r = nullptr;
+		r1 = nullptr;
 		if (!Avail_NR.isEmpty()) 
 		{
-			Avail_NR.dequeue(r); 
+			Avail_NR.dequeue(r1); 
 		}
 		else if (!Avail_PR.isEmpty()) 
 		{
-			Avail_PR.dequeue(r); 
+			Avail_PR.dequeue(r1); 
 		}
 
-		if (r != nullptr)
+		if (r1 != nullptr)
 		{
-			RDY_NM.dequeue(m);
-			m->setRover(r);
-			int distance = m->getTargetLoc();
-			int speed = r->getSpeed();
+			RDY_NM.dequeue(m1);
+			m1->setRover(r1);
+			int distance = m1->getTargetLoc();
+			int speed = r1->getSpeed();
 			int dailyDistance = speed * 25;
 			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
 			int arrivalDay = day + travelDays;
-			OUT_missions.enqueue(m, -arrivalDay);
+			OUT_missions.enqueue(m1, -arrivalDay);
 		}
 		else 
 		{ 	break; }
