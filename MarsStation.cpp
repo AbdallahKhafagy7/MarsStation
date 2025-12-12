@@ -192,30 +192,7 @@ void MarsStation::moveingOutToExec()
 	if (OUT_missions.dequeue(m, p)) EXEC_missions.enqueue(m, p);
 }
 
-void MarsStation::moveingReadyToOut()
-{
-	mission* m;
-	rover* r;
 
-	// Priority 1: Polar
-	if (!RDY_PM.isEmpty() && !Avail_PR.isEmpty()) {
-		RDY_PM.dequeue(m); Avail_PR.dequeue(r);
-		m->setRover(r);
-		OUT_missions.enqueue(m, m->getDuration());
-	}
-	// Priority 2: Digging
-	if (!RDY_DM.isEmpty() && !Avail_DR.isEmpty()) {
-		RDY_DM.dequeue(m); Avail_DR.dequeue(r);
-		m->setRover(r);
-		OUT_missions.enqueue(m, m->getDuration());
-	}
-	// Priority 3: Normal
-	if (!RDY_NM.isEmpty() && !Avail_NR.isEmpty()) {
-		RDY_NM.dequeue(m); Avail_NR.dequeue(r);
-		m->setRover(r);
-		OUT_missions.enqueue(m, m->getDuration());
-	}
-}
 
 // Move rovers whose checkup ended to available lists
 void MarsStation::moveCheckupToAvailable()
@@ -357,5 +334,105 @@ void MarsStation::autoAbortPolarReady()
 	while (!tempQueue.isEmpty()) {
 		tempQueue.dequeue(m);
 		RDY_PM.enqueue(m);
+	}
+}
+void MarsStation::moveingReadyToOut()
+{
+	mission* m;
+	rover* r;
+
+	// the polar missions
+	// Polar , Normal ,  Digging 
+	while (RDY_PM.peek(m)) //while exist ready polar mission
+	{
+		r = nullptr; 
+
+		if (!Avail_PR.isEmpty()) 
+		{
+			Avail_PR.dequeue(r); //   polar elAwl
+		}
+		else if (!Avail_NR.isEmpty())
+		{
+			Avail_NR.dequeue(r); // normar
+		}
+		else if (!Avail_DR.isEmpty()) 
+		{
+			Avail_DR.dequeue(r); //  digging
+		}
+
+		// if rover exist
+		if (r != nullptr)
+		{
+			RDY_PM.dequeue(m); 
+			m->setRover(r); 
+
+			int distance = m-> getTargetLoc() ;
+			int speed = r->getSpeed() ;
+			int dailyDistance = speed * 25;
+			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
+			int arrivalDay = day + travelDays ;
+
+		//?
+			OUT_missions.enqueue(m, -arrivalDay);
+		}
+		else 
+		{break;}
+	}
+
+	// ---------------------------------------------------------
+	// digging
+//digging only
+	while (  RDY_DM.peek(m) )
+	{
+		r = nullptr;
+		if (!Avail_DR.isEmpty()) 
+		{
+			Avail_DR.dequeue(r);
+		}
+
+		if (r != nullptr)
+		{
+			RDY_DM.dequeue(m);
+			m->setRover(r);
+			int distance = m->getTargetLoc();
+			int speed = r->getSpeed();
+			int dailyDistance = speed * 25;
+			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
+
+			int arrivalDay = day + travelDays;
+			OUT_missions.enqueue(m, -arrivalDay);
+		}
+		else {
+			break;
+		}
+	}
+	//normal
+	// normal , polar 
+	// ---------------------------------------------------------
+	while (RDY_NM.peek(m))
+	{
+		r = nullptr;
+		if (!Avail_NR.isEmpty()) 
+		{
+			Avail_NR.dequeue(r); 
+		}
+		else if (!Avail_PR.isEmpty()) 
+		{
+			Avail_PR.dequeue(r); 
+		}
+
+		if (r != nullptr)
+		{
+			RDY_NM.dequeue(m);
+			m->setRover(r);
+			int distance = m->getTargetLoc();
+			int speed = r->getSpeed();
+			int dailyDistance = speed * 25;
+			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
+			int arrivalDay = day + travelDays;
+			OUT_missions.enqueue(m, -arrivalDay);
+		}
+		else 
+		{ 	break; }
 	}
 }
