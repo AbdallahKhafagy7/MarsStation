@@ -6,10 +6,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cstdlib> // For rand()
-#include <ctime>   // For time()
-#include <vector>
-#include <limits>
+#include <cstdlib> 
+#include <ctime>   
+#include <iomanip> 
 using namespace std;
 
 void MarsStation::inputFile(const string filename) {
@@ -20,29 +19,23 @@ void MarsStation::inputFile(const string filename) {
 	}
 
 	string line;
-
-	// number of rovers
 	getline(file, line);
 	istringstream iss1(line);
 	iss1 >> numNM >> numPM >> numDM;
 
-	// rover speeds
 	getline(file, line);
 	istringstream iss2(line);
 	iss2 >> speedNM >> speedPM >> speedDM;
 
-	// checkup info 
 	getline(file, line);
 	istringstream iss3(line);
 	iss3 >> checkupTime >> checkDurNM >> checkDurPM >> checkDurDM;
 
-	// --- CREATE ROVERS LOOP (Critical Logic) ---
 	int idCounter = 1;
 	for (int i = 0; i < numNM; ++i) Avail_NR.enqueue(new rover(idCounter++, 'N', speedNM, checkDurNM, checkupTime));
 	for (int i = 0; i < numPM; ++i) Avail_PR.enqueue(new rover(idCounter++, 'P', speedPM, checkDurPM, checkupTime));
 	for (int i = 0; i < numDM; ++i) Avail_DR.enqueue(new rover(idCounter++, 'D', speedDM, checkDurDM, checkupTime));
 
-	// no.requests
 	int req;
 	file >> req;
 
@@ -52,10 +45,14 @@ void MarsStation::inputFile(const string filename) {
 		if (type == 'R') {
 			int id, loc, dur, day;
 			char mtype;
-			// Correct Parsing Order
 			file >> mtype >> day >> id >> loc >> dur;
+
 			newRequest* p = new newRequest(this, type, id, day, mtype, loc, dur);
 			Requests.enqueue(p);
+
+			if (mtype == 'N') totalMissions_N++;
+			else if (mtype == 'P') totalMissions_P++;
+			else if (mtype == 'D') totalMissions_D++;
 		}
 		else if (type == 'X') {
 			int id, day;
@@ -64,14 +61,17 @@ void MarsStation::inputFile(const string filename) {
 			Requests.enqueue(p);
 		}
 	}
-
 	file.close();
 }
 
 void MarsStation::simulator() {
-	UI ui(this);            // pass station to UI so it can store/get mode
+	// 1. Initialize UI with pointer to station
+	UI ui(this);
+
 	day = 1;
 	srand(time(0));
+
+	// 2. UI handles mode selection internally in constructor
 
 	string file;
 	cout << "Input File Name: ";
@@ -79,30 +79,41 @@ void MarsStation::simulator() {
 
 	inputFile(file);
 
+	// Optional: Check UI Mode via getter if you need to print start message differently
+	// if(ui.getMode() == SILENT) ...
+
 	cout << "Simulation Starts..." << endl;
 
-	while (day <= 50 || !Requests.isEmpty() || !EXEC_missions.isEmpty()) {
+	while (day <= 5000) {
+		// Stop condition
+		if (Requests.isEmpty() && EXEC_missions.isEmpty() &&
+			RDY_NM.isEmpty() && RDY_PM.isEmpty() && RDY_DM.isEmpty() &&
+			OUT_missions.isEmpty() && BACK_missions.isEmpty())
+		{
+			break;
+		}
 
 		handleRequests();
-
-		// Calling YOUR function names
 		moveCheckupToAvailable();
 		moveingBackToDone();
 		moveingExecToBack();
 		moveingOutToExec();
-		// Auto-abort polar ready missions before assigning
 		autoAbortPolarReady();
 		moveingReadyToOut();
 
-		ui.printDay(day, &RDY_NM, &RDY_PM, &RDY_DM,
+		// 3. Call UI Print with EXACTLY the 10 arguments it supports
+		ui.printDay(day,
+			&RDY_NM, &RDY_PM, &RDY_DM,
 			&Avail_NR, &Avail_PR, &Avail_DR,
-			&OUT_missions, &EXEC_missions, &BACK_missions, &DONE_missions);
+			&OUT_missions, &EXEC_missions, &BACK_missions,
+			&DONE_missions);
 
-		cout << "Press ENTER for next day...";
-		cin.ignore(); cin.get();
-
+		// Note: The UI class handles the "Press Enter" logic internally
 		day++;
 	}
+
+	saveOutputFile();
+	cout << "Output file generated." << endl;
 }
 
 void MarsStation::handleRequests() {
@@ -114,9 +125,7 @@ void MarsStation::handleRequests() {
 			req->Operate();
 			delete req;
 		}
-		else {
-			break;
-		}
+		else break;
 	}
 }
 
@@ -126,361 +135,241 @@ void MarsStation::insertMission(mission* m, char type) {
 	else if (type == 'D') RDY_DM.enqueue(m);
 }
 
-// =================================================
-//  YOUR NAMING CONVENTION + PHASE 1.2 LOGIC
-// =================================================
+void MarsStation::checkUpTest() {}
 
-void MarsStation::checkUpTest()
-{
-	int Y = rand() % 100;
-	// Rule: Only if Y < 70
-	if (Y < 70)
-	{
-		rover* r;
-		if (!checkup_NR.isEmpty() && checkup_NR.dequeue(r)) Avail_NR.enqueue(r);
-		if (!checkup_PR.isEmpty() && checkup_PR.dequeue(r)) Avail_PR.enqueue(r);
-		if (!checkup_DR.isEmpty() && checkup_DR.dequeue(r)) Avail_DR.enqueue(r);
-	}
-}
-
-// Move rovers whose checkup ended to available lists
-void MarsStation::moveCheckupToAvailable()
-{
+void MarsStation::moveCheckupToAvailable() {
 	rover* r;
-	LinkedQueue<rover*> tempQ;
 
-	// Process normal rovers
-	while (!checkup_NR.isEmpty()) {
-		checkup_NR.dequeue(r);
-		int start = r->getCheckupStartDay();
-		int end = 0;
-		if (start > 0) end = start + r->getCheckupDuration();
-		if (start > 0 && end <= day) {
-			r->setCheckupStartDay(0);
-			Avail_NR.enqueue(r);
+	auto checkList = [&](LinkedQueue<rover*>& list, LinkedQueue<rover*>& avail) {
+		int count = list.getCount();
+		while (count--) {
+			list.dequeue(r);
+			int end = r->getCheckupStartDay() + r->getCheckupDuration();
+			if (end <= day) {
+				r->setCheckupStartDay(0);
+				avail.enqueue(r);
+			}
+			else {
+				list.enqueue(r);
+			}
 		}
-		else {
-			tempQ.enqueue(r);
-		}
-	}
-	while (!tempQ.isEmpty()) {
-		tempQ.dequeue(r);
-		checkup_NR.enqueue(r);
-	}
+		};
 
-	// Process polar rovers
-	while (!checkup_PR.isEmpty()) {
-		checkup_PR.dequeue(r);
-		int start = r->getCheckupStartDay();
-		int end = 0;
-		if (start > 0) end = start + r->getCheckupDuration();
-		if (start > 0 && end <= day) {
-			r->setCheckupStartDay(0);
-			Avail_PR.enqueue(r);
-		}
-		else {
-			tempQ.enqueue(r);
-		}
-	}
-	while (!tempQ.isEmpty()) {
-		tempQ.dequeue(r);
-		checkup_PR.enqueue(r);
-	}
+	checkList(checkup_NR, Avail_NR);
+	checkList(checkup_PR, Avail_PR);
+	checkList(checkup_DR, Avail_DR);
+}
 
-	// Process digging rovers
-	while (!checkup_DR.isEmpty()) {
-		checkup_DR.dequeue(r);
-		int start = r->getCheckupStartDay();
-		int end = 0;
-		if (start > 0) end = start + r->getCheckupDuration();
-		if (start > 0 && end <= day) {
-			r->setCheckupStartDay(0);
-			Avail_DR.enqueue(r);
-		}
-		else {
-			tempQ.enqueue(r);
-		}
+void MarsStation::AbortMission(int missionID) {
+	mission* m = RDY_NM.AbortMission(missionID);
+	if (m) {
+		Aborted_missions.enqueue(m);
+		return;
 	}
-	while (!tempQ.isEmpty()) {
-		tempQ.dequeue(r);
-		checkup_DR.enqueue(r);
+	m = OUT_missions.AbortMission(missionID);
+	if (m) {
+		rover* r = m->getRover();
+		if (r) {
+			int prob = rand() % 100;
+			if (prob < 20) {
+				r->setCheckupStartDay(day);
+				if (r->getType() == 'N') checkup_NR.enqueue(r);
+				else if (r->getType() == 'P') checkup_PR.enqueue(r);
+				else checkup_DR.enqueue(r);
+			}
+			else {
+				r->setCheckupStartDay(0);
+				if (r->getType() == 'N') Avail_NR.enqueue(r);
+				else if (r->getType() == 'P') Avail_PR.enqueue(r);
+				else Avail_DR.enqueue(r);
+			}
+		}
+		Aborted_missions.enqueue(m);
 	}
 }
 
-// Abort a normal mission by ID (called from abortRequest)
-void MarsStation::AbortMission(int missionID)
-{
-    // Try to abort from ready normal list
-    mission* m = RDY_NM.AbortMission(missionID);
-    if (m != nullptr) {
-        // found in ready list -> move to aborted
-        Aborted_missions.enqueue(m);
-        return;
-    }
-
-    // Try to abort from outgoing missions
-    m = OUT_missions.AbortMission(missionID);
-    if (m != nullptr) {
-        // detach rover and send it to checkup/available immediately
-        rover* r = m->getRover();
-        if (r != nullptr) {
-            int x = rand() % 100;
-            char type = r->getType();
-            // Simplified: send to checkup with probability 20%, else available
-            if (x < 20) {
-                r->setCheckupStartDay(day);
-                if (type == 'N') checkup_NR.enqueue(r);
-                else if (type == 'P') checkup_PR.enqueue(r);
-                else if (type == 'D') checkup_DR.enqueue(r);
-            }
-            else {
-                r->setCheckupStartDay(0);
-                if (type == 'N') Avail_NR.enqueue(r);
-                else if (type == 'P') Avail_PR.enqueue(r);
-                else if (type == 'D') Avail_DR.enqueue(r);
-            }
-        }
-
-        // move mission to aborted list
-        Aborted_missions.enqueue(m);
-        return;
-    }
-
-    // Otherwise cannot abort; ignore
-}
-
-// Auto-abort ready polar missions whose waiting time > 2 * duration
-void MarsStation::autoAbortPolarReady()
-{
-	// We need to iterate through RDY_PM queue and remove missions that meet condition.
-	// Since LinkedQueue doesn't provide direct iteration or removal by predicate,
-	// we'll dequeue all items and re-enqueue those that don't get aborted.
-
-	LinkedQueue<mission*> tempQueue;
+void MarsStation::autoAbortPolarReady() {
+	LinkedQueue<mission*> temp;
 	mission* m;
-
 	while (!RDY_PM.isEmpty()) {
 		RDY_PM.dequeue(m);
-		int waiting;
-		if (m->getRDay() == 0) {
-			waiting = 0;
-		}
-		else {
-			waiting = day - m->getRDay();
-		}
-		// If waitingDays field exists and is maintained, prefer using it. Otherwise calculate.
-		// Condition: waiting time > 2 * mission duration
-		if (waiting > 2 * m->getDuration()) {
-			// move to aborted list
+		int wait = day - m->getRDay();
+		if (wait > 2 * m->getDuration()) {
 			Aborted_missions.enqueue(m);
+			autoAbortedCount++;
 		}
 		else {
-			tempQueue.enqueue(m);
+			temp.enqueue(m);
 		}
 	}
-
-	// restore remaining missions
-	while (!tempQueue.isEmpty()) {
-		tempQueue.dequeue(m);
+	while (!temp.isEmpty()) {
+		temp.dequeue(m);
 		RDY_PM.enqueue(m);
 	}
 }
-void MarsStation::moveingReadyToOut()
-{
-	mission* m1;
-	rover* r1;
 
-	// the polar missions
-	// Polar , Normal ,  Digging 
-	while (RDY_PM.peek(m1)) //while exist ready polar mission
-	{
-		r1 = NULL; 
-
-		if ( !Avail_PR.isEmpty()  )  {
-			Avail_PR.dequeue( r1) ; //   polar elAwl
-		}
-		else if (!Avail_NR.isEmpty())
-		{
-			Avail_NR.dequeue(r1); // MAFESH POLAR AROH L normaL
-		}
-		else if (!Avail_DR.isEmpty()) 
-		{
-			Avail_DR.dequeue(r1); //  digging
-		}
-
-		// LW LAQA ROVER FADY 
-		if (r1 != NULL)
-		{
-			RDY_PM.dequeue( m1); 
-			m1->setRover(r1 ); 
-			int distance = m1-> getTargetLoc() ;
-			
-			int speed = r1->getSpeed() ;
-			int dailyDistance = speed * 25;
-			int trvelDays = (distance + dailyDistance - 1) / dailyDistance;
-			int arrivaDay = day + trvelDays ;
-			OUT_missions.enqueue(m1, -arrivaDay);
-		}
-		else 
-		{break;}
-	}
-	// digging
-//digging only
-	while (  RDY_DM.peek(m1) )
-	{
-		r1 = nullptr;
-		if (!Avail_DR.isEmpty()) 
-		{
-			Avail_DR.dequeue(r1);
-		}
-
-		if (r1 != nullptr)
-		{
-			RDY_DM.dequeue(m1);
-			m1->setRover(r1);
-			int distance = m1->getTargetLoc();
-			int speed = r1->getSpeed();
-			int OneDayDest = speed * 25; //distance yqdr ym4eha fe youm wahed
-
-			int travelDays = (distance + OneDayDest - 1) / OneDayDest; // mo3adla bdl ma nstkhdm Ceiling
-
-			int arrivalDay = day + travelDays;
-			OUT_missions.enqueue(m1, -arrivalDay);
-		}
-		else {
-			break;
-		}
-	}
-	//normal
-	// normal , polar 
-	// ---------------------------------------------------------
-	while (RDY_NM.peek(m1))
-	{
-		r1 = nullptr;
-		if (!Avail_NR.isEmpty()) 
-		{
-			Avail_NR.dequeue(r1); 
-		}
-		else if (!Avail_PR.isEmpty()) 
-		{
-			Avail_PR.dequeue(r1); 
-		}
-
-		if (r1 != nullptr)
-		{
-			RDY_NM.dequeue(m1);
-			m1->setRover(r1) ;
-			int distance  = m1->getTargetLoc();
-			int speed =  r1->getSpeed();
-			int OneDayDest = speed  * 25;
-			int travelDays  = (distance  + OneDayDest - 1) / OneDayDest;
-			int arrivalDay =   day +  travelDays;
-			OUT_missions.enqueue(m1,  -arrivalDay  )   ;
-		}
-		 else 
-		{
-			break; }
-	}
-}
-
-
-
-void MarsStation::moveingOutToExec()
-{
-	mission* m; 
-	int ArrDayNegative ; 
-	while (OUT_missions.peek(m, ArrDayNegative))
-	{
-		int arrivalDay = -ArrDayNegative;
-		if (arrivalDay <= day)
-		{
-			OUT_missions.dequeue(m, ArrDayNegative);
-			int executionEndDay = day + m->getDuration();
-			EXEC_missions.enqueue(m, -executionEndDay);
-		}
-		else 
-		{
-			break;
-		}
-	}
-}
-
-
-
-void MarsStation::moveingExecToBack()
-{
+void MarsStation::moveingReadyToOut() {
 	mission* m;
-	int FinDayNegativ;
+	rover* r;
 
-	while (EXEC_missions.peek(m, FinDayNegativ)) {
-		int finishDay = -FinDayNegativ; //ma7tot bel saleb
-		if (finishDay <= day)
-		{
-			EXEC_missions.dequeue(m, FinDayNegativ);
-			rover* r = m->getRover(); //bageb el rover bta3 el mohma
-			int dist = m->getTargetLoc();
-			int speed = r->getSpeed();
-			int dailyDist = speed * 25;
-			int travelDays = (dist + dailyDist - 1) / dailyDist;
-			int backArrivalDay = day + travelDays;
-			BACK_missions.enqueue(m, -backArrivalDay);
+	while (RDY_PM.peek(m)) {
+		r = NULL;
+		if (!Avail_PR.isEmpty()) Avail_PR.dequeue(r);
+		else if (!Avail_NR.isEmpty()) Avail_NR.dequeue(r);
+		else if (!Avail_DR.isEmpty()) Avail_DR.dequeue(r);
+
+		if (r) {
+			RDY_PM.dequeue(m);
+			m->setRover(r);
+
+			int days = (m->getTargetLoc() + (r->getSpeed() * 25) - 1) / (r->getSpeed() * 25);
+			m->setExecutionDays(days * 2 + m->getDuration());
+			m->setWaitingDays(day - m->getRDay());
+
+			OUT_missions.enqueue(m, -(day + days));
 		}
-		else {
-			break;
+		else break;
+	}
+
+	while (RDY_DM.peek(m)) {
+		r = NULL;
+		if (!Avail_DR.isEmpty()) Avail_DR.dequeue(r);
+		if (r) {
+			RDY_DM.dequeue(m);
+			m->setRover(r);
+
+			int days = (m->getTargetLoc() + (r->getSpeed() * 25) - 1) / (r->getSpeed() * 25);
+			m->setExecutionDays(days * 2 + m->getDuration());
+			m->setWaitingDays(day - m->getRDay());
+
+			OUT_missions.enqueue(m, -(day + days));
 		}
+		else break;
+	}
+
+	while (RDY_NM.peek(m)) {
+		r = NULL;
+		if (!Avail_NR.isEmpty()) Avail_NR.dequeue(r);
+		else if (!Avail_PR.isEmpty()) Avail_PR.dequeue(r);
+		if (r) {
+			RDY_NM.dequeue(m);
+			m->setRover(r);
+
+			int days = (m->getTargetLoc() + (r->getSpeed() * 25) - 1) / (r->getSpeed() * 25);
+			m->setExecutionDays(days * 2 + m->getDuration());
+			m->setWaitingDays(day - m->getRDay());
+
+			OUT_missions.enqueue(m, -(day + days));
+		}
+		else break;
 	}
 }
 
-void MarsStation::moveingBackToDone()
-{
+void MarsStation::moveingOutToExec() {
 	mission* m;
-	int priority;
+	int p;
+	while (OUT_missions.peek(m, p)) {
+		if (-p <= day) {
+			OUT_missions.dequeue(m, p);
+			EXEC_missions.enqueue(m, -(day + m->getDuration()));
+		}
+		else break;
+	}
+}
 
-	// Process all BACK_missions that have returned (arrivalDay <= current day)
-	while (BACK_missions.peek(m, priority)) {
-		int arrivalDay = -priority;
-		if (arrivalDay <= day) {
-			// remove from BACK and mark done
-			BACK_missions.dequeue(m, priority);
-			DONE_missions.push(m);
-
-			// handle the rover
+void MarsStation::moveingExecToBack() {
+	mission* m;
+	int p;
+	while (EXEC_missions.peek(m, p)) {
+		if (-p <= day) {
+			EXEC_missions.dequeue(m, p);
 			rover* r = m->getRover();
-			roverToAvailCheckup(r);
+			int days = (m->getTargetLoc() + (r->getSpeed() * 25) - 1) / (r->getSpeed() * 25);
+			BACK_missions.enqueue(m, -(day + days));
+		}
+		else break;
+	}
+}
+
+void MarsStation::moveingBackToDone() {
+	mission* m;
+	int p;
+	while (BACK_missions.peek(m, p)) {
+		if (-p <= day) {
+			BACK_missions.dequeue(m, p);
+			DONE_missions.push(m);
+			roverToAvailCheckup(m->getRover());
 			m->setRover(nullptr);
 		}
-
-		else {
-			break;
-		}
+		else break;
 	}
 }
 
-// send to checkup if maintenance required, otherwise return to available.
-void MarsStation::roverToAvailCheckup(rover* r)
-{
-	if (r == nullptr) return;
-
+void MarsStation::roverToAvailCheckup(rover* r) {
+	if (!r) return;
 	r->incrementMissions();
 
-	char type = r->getType();
+	bool needsCheck = (r->getMissionsCompleted() >= r->getMissionsBeforeCheckup());
+	LinkedQueue<rover*>* checkList = (r->getType() == 'N') ? &checkup_NR : (r->getType() == 'P') ? &checkup_PR : &checkup_DR;
+	LinkedQueue<rover*>* availList = (r->getType() == 'N') ? &Avail_NR : (r->getType() == 'P') ? &Avail_PR : &Avail_DR;
 
-	// If rover reached threshold, send to checkup
-	if (r->getMissionsCompleted() >= r->getMissionsBeforeCheckup())
-	{
+	if (needsCheck) {
 		r->setCheckupStartDay(day);
 		r->resetMissions();
-
-		if (type == 'N') checkup_NR.enqueue(r);
-		else if (type == 'P') checkup_PR.enqueue(r);
-		else if (type == 'D') checkup_DR.enqueue(r);
+		checkList->enqueue(r);
 	}
 	else {
-		// Return
 		r->setCheckupStartDay(0);
-
-		if (type == 'N') Avail_NR.enqueue(r);
-		else if (type == 'P') Avail_PR.enqueue(r);
-		else if (type == 'D') Avail_DR.enqueue(r);
+		availList->enqueue(r);
 	}
+}
+
+void MarsStation::saveOutputFile() {
+	ofstream file("output.txt");
+
+	file << "Fday\tID\tRday\tWdays\tMDUR\tTdays" << endl;
+
+	mission* m;
+	int count = 0;
+	int waitSum = 0, execSum = 0, durSum = 0;
+
+	while (!DONE_missions.isEmpty()) {
+		DONE_missions.pop(m);
+
+		int fDay = m->getRDay() + m->getWaitingDays() + m->getExecutionDays();
+
+		file << fDay << "\t" << m->getID() << "\t" << m->getRDay() << "\t"
+			<< m->getWaitingDays() << "\t" << m->getDuration() << "\t"
+			<< m->getExecutionDays() << endl;
+
+		waitSum += m->getWaitingDays();
+		execSum += m->getExecutionDays();
+		durSum += m->getDuration();
+		count++;
+		delete m;
+	}
+
+	int abortedCount = Aborted_missions.getCount();
+	int total = count + abortedCount;
+
+	file << "......................................................." << endl;
+	file << "Missions: " << total << " [N: " << totalMissions_N << ", P: " << totalMissions_P << ", D: " << totalMissions_D << "] "
+		<< "[" << count << " DONE, " << abortedCount << " Aborted]" << endl;
+
+	int totalRovers = numNM + numPM + numDM;
+	file << "Rovers: " << totalRovers << " [N: " << numNM << ", P: " << numPM << ", D: " << numDM << "]" << endl;
+
+	double avgWait = (count > 0) ? (double)waitSum / count : 0;
+	double avgExec = (count > 0) ? (double)execSum / count : 0;
+	double avgDur = (count > 0) ? (double)durSum / count : 0;
+
+	file << fixed << setprecision(2);
+	file << "Avg Wdays = " << avgWait << ", Avg MDUR = " << avgDur << ", Avg Tdays = " << avgExec << endl;
+
+	double ratio = (avgDur > 0) ? (avgWait / avgDur) * 100 : 0;
+	double autoRatio = (totalMissions_P > 0) ? ((double)autoAbortedCount / totalMissions_P) * 100 : 0;
+
+	file << "% Avg Wdays / Avg MDUR = " << ratio << "%, Auto-aborted = " << autoRatio << "%" << endl;
+
+	file.close();
 }

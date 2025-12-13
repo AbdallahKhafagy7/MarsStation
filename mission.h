@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
-#include "rover.h" // Required so Mission knows what a Rover is
+#include "rover.h" 
+
 using namespace std;
 
 class mission
@@ -11,10 +12,11 @@ private:
 	int duration;
 	int ID;
 	int readyDay;
+
+	// Phase 2 Statistics
 	int waitingDays;
 	int executionDays;
 
-	// The Link: Tracks which rover is doing this mission
 	rover* assignedRover;
 
 public:
@@ -26,9 +28,14 @@ public:
 	char getType() const;
 	int getRDay() const;
 
-	// Critical logic functions
 	void setRover(rover* r);
 	rover* getRover() const;
+
+	// Statistics Setters/Getters
+	void setWaitingDays(int d);
+	void setExecutionDays(int d);
+	int getWaitingDays() const;
+	int getExecutionDays() const;
 
 	friend ostream& operator<<(ostream& out, const mission& obj);
 };
