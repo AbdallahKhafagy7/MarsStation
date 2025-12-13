@@ -9,6 +9,7 @@
 #include <cstdlib> // For rand()
 #include <ctime>   // For time()
 #include <vector>
+#include <limits>
 using namespace std;
 
 void MarsStation::inputFile(const string filename) {
@@ -68,7 +69,7 @@ void MarsStation::inputFile(const string filename) {
 }
 
 void MarsStation::simulator() {
-	UI ui;
+	UI ui(this);            // pass station to UI so it can store/get mode
 	day = 1;
 	srand(time(0));
 
@@ -446,8 +447,6 @@ void MarsStation::moveingBackToDone()
 			// handle the rover
 			rover* r = m->getRover();
 			roverToAvailCheckup(r);
-
-			// (mission completed)
 			m->setRover(nullptr);
 		}
 
@@ -462,12 +461,11 @@ void MarsStation::roverToAvailCheckup(rover* r)
 {
 	if (r == nullptr) return;
 
-	// Rover completed one mission returning to base
 	r->incrementMissions();
 
 	char type = r->getType();
 
-	// If rover reached missionsBeforeCheckup threshold, send to checkup
+	// If rover reached threshold, send to checkup
 	if (r->getMissionsCompleted() >= r->getMissionsBeforeCheckup())
 	{
 		r->setCheckupStartDay(day);
@@ -478,7 +476,7 @@ void MarsStation::roverToAvailCheckup(rover* r)
 		else if (type == 'D') checkup_DR.enqueue(r);
 	}
 	else {
-		// Return to available pool
+		// Return
 		r->setCheckupStartDay(0);
 
 		if (type == 'N') Avail_NR.enqueue(r);
